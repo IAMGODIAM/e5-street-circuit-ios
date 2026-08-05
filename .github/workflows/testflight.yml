@@ -1,0 +1,95 @@
+name: TestFlight
+
+# E5 Street Circuit — cloud-signed TestFlight pipeline.
+# No Mac required: the App Store Connect API key drives signing AND upload.
+# Secrets needed (repo Settings → Secrets and variables → Actions):
+#   ASC_KEY_ID      — App Store Connect API key ID
+#   ASC_ISSUER_ID   — App Store Connect issuer ID
+#   ASC_KEY_P8      — full contents of the downloaded AuthKey_XXXX.p8 file
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  testflight:
+    runs-on: macos-14
+    timeout-minutes: 60
+    env:
+      TEAM_ID: 32SLSDKAT5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install JS dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Snapshot the game bundle from the E5 mirror
+        run: bash scripts/fetch_assets.sh
+
+      - name: Generate the iOS project
+        run: npx cap add ios
+
+      - name: Generate icons and splash screens
+        run: npx capacitor-assets generate --ios
+
+      - name: Patch platform config (landscape, deep links, 120Hz)
+        run: bash scripts/patch_ios.sh
+
+      - name: Sync web bundle into the app
+        run: npx cap sync ios
+
+      - name: Stage App Store Connect API key
+        run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.ASC_KEY_P8 }}" > ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          chmod 600 ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+      - name: Archive (cloud-managed signing)
+        run: |
+          xcodebuild archive \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic
+
+      - name: Write export options
+        run: |
+          cat > build/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export and upload to TestFlight
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"
+
+      - name: Result
+        run: echo "Uploaded. The build appears in App Store Connect → TestFlight after Apple finishes processing (5–30 min)."

@@ -1,0 +1,137 @@
+workflows:
+  ios-circuit-adhoc:
+    name: E5 Street Circuit — Ad Hoc OTA
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: circuit-build
+          include: true
+          source: true
+    environment:
+      groups:
+        - appstore_credentials
+      vars:
+        BUNDLE_ID: com.e5enclave.streetcircuit
+        IPA_PUT_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/E5StreetCircuit.ipa?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T040753Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=a7d78248d9e5fb60efefdba8aa8014042eac8ef5c452d24296b22691beced865"
+        ST_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/status.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=44e7b20c3e10f0cb97a3c4fca511a9b04f427a807addd1482033e9b722deacf5"
+        XL_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/xcode.log?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f98a16e722f31bbb57db14fcd916b7107bce4d532ce6f8279ae003acc75da421"
+        SL_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/steps.log?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f99d78c03a968e4a6ac8c3f4a225a1ae287072a15b3d8d3762cc7990d3bc7bbd"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install JS dependencies
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 1: Install JS dependencies | $(date -u +%H:%M:%SZ)" || true
+          npm install --no-audit --no-fund 2>&1 | tail -5
+      - name: Snapshot the game bundle from the E5 mirror
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 2: Snapshot the game bundle from the E5 mirror | $(date -u +%H:%M:%SZ)" || true
+          bash scripts/fetch_assets.sh 2>&1 | tail -8
+      - name: Generate the iOS project
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 3: Generate the iOS project | $(date -u +%H:%M:%SZ)" || true
+          npx cap add ios
+      - name: Icons and splash (best effort)
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 4: Icons and splash (best effort) | $(date -u +%H:%M:%SZ)" || true
+          npx capacitor-assets generate --ios || echo "asset generation skipped — template icons stand"
+      - name: Patch platform config
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 5: Patch platform config | $(date -u +%H:%M:%SZ)" || true
+          bash scripts/patch_ios.sh
+      - name: Sync web bundle into the app
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 6: Sync web bundle into the app | $(date -u +%H:%M:%SZ)" || true
+          npx cap sync ios
+      - name: Signing (Ad Hoc, auto-provision)
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 7: Signing (Ad Hoc, auto-provision) | $(date -u +%H:%M:%SZ)" || true
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_ADHOC \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build ipa
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 8: Build ipa | $(date -u +%H:%M:%SZ)" || true
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+      - name: Publish the IPA to the E5 OTA mirror
+        script: |
+          curl -fsS -X PUT "$ST_URL" -d "stage 9: Publish the IPA to the E5 OTA mirror | $(date -u +%H:%M:%SZ)" || true
+          IPA=$(ls build/ios/ipa/*.ipa | head -1)
+          echo "uploading $IPA ($(du -h "$IPA" | cut -f1))"
+          curl -fsS -X PUT --upload-file "$IPA" "$IPA_PUT_URL"
+          curl -fsS -X PUT "$ST_URL" -d "DONE: ipa published | $(date -u +%H:%M:%SZ)" || true
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      scripts:
+        - name: Evidence upload (runs on success AND failure)
+          script: |
+            LOG=$(ls -t /tmp/xcodebuild_logs/*.log 2>/dev/null | head -1)
+            if [ -n "$LOG" ]; then tail -c 200000 "$LOG" | curl -fsS -X PUT --data-binary @- "$XL_URL" || true; fi
+            { echo "build finished $(date -u +%H:%M:%SZ)"; ls -la build/ios/ipa/ 2>/dev/null; } | curl -fsS -X PUT --data-binary @- "$SL_URL" || true
+
+  ios-testflight:
+    name: E5 Street Circuit — TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      groups:
+        - appstore_credentials   # the E5 group already used by Abba Talk
+      vars:
+        BUNDLE_ID: com.e5enclave.streetcircuit
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install JS dependencies
+        script: |
+          npm install --no-audit --no-fund
+      - name: Snapshot the game bundle from the E5 mirror
+        script: |
+          bash scripts/fetch_assets.sh
+      - name: Generate the iOS project
+        script: |
+          npx cap add ios
+      - name: Generate icons and splash screens
+        script: |
+          npx capacitor-assets generate --ios
+      - name: Patch platform config (landscape, deep links, 120Hz)
+        script: |
+          bash scripts/patch_ios.sh
+      - name: Sync web bundle into the app
+        script: |
+          npx cap sync ios
+      - name: Signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true

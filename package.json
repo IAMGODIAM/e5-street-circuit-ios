@@ -1,0 +1,20 @@
+{
+  "name": "e5-street-circuit-ios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E5 Street Circuit — the sovereign Upland racing game, packaged for iOS.",
+  "scripts": {
+    "fetch-assets": "bash scripts/fetch_assets.sh",
+    "patch-ios": "bash scripts/patch_ios.sh"
+  },
+  "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/haptics": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

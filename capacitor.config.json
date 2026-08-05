@@ -1,0 +1,12 @@
+{
+  "appId": "com.e5enclave.streetcircuit",
+  "appName": "E5 Street Circuit",
+  "webDir": "www",
+  "backgroundColor": "#0a0c10",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0a0c10",
+    "preferredContentMode": "mobile",
+    "scrollEnabled": false
+  }
+}

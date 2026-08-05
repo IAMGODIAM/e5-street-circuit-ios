@@ -1,0 +1,7 @@
+node_modules/
+www/
+ios/
+build/
+assets/
+*.p8
+.DS_Store
