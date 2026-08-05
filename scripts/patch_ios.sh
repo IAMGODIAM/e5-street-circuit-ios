@@ -37,6 +37,12 @@ $PB -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.e5enclave.streetcircu
 $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PL"
 $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string e5circuit" "$PL"
 
+# Monotonic build number so every OTA reinstall is a clean upgrade
+BUILD_NUM=$(date -u +%y%m%d%H%M)
+$PB -c "Delete :CFBundleVersion" "$PL" 2>/dev/null || true
+$PB -c "Add :CFBundleVersion string $BUILD_NUM" "$PL"
+echo "CFBundleVersion -> $BUILD_NUM"
+
 # Export compliance: no non-exempt encryption -> no per-build questionnaire
 $PB -c "Delete :ITSAppUsesNonExemptEncryption" "$PL" 2>/dev/null || true
 $PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PL"

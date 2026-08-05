@@ -75,14 +75,19 @@ vend "jsm/libs/basis/basis_transcoder.js"        "examples/jsm/libs/basis/basis_
 vend "jsm/libs/basis/basis_transcoder.wasm"      "examples/jsm/libs/basis/basis_transcoder.wasm"
 
 echo "== rewire the app copy to the vendored stack =="
-# one prefix covers the importmap, module URL, and both decoder paths
+# Handle EVERY vendor-path family the web build has ever used (CDN and the
+# uplandskin mirror). Absolute paths cannot resolve inside the app bundle.
 sed -i.bak \
   -e 's#https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js#./vendor/three.module.js#g' \
   -e 's#https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/#./vendor/jsm/#g' \
+  -e 's#/uplandskin/vendor/three/build/three.module.js#./vendor/three.module.js#g' \
+  -e 's#/uplandskin/vendor/three/examples/jsm/#./vendor/jsm/#g' \
+  -e 's#/uplandskin/vendor/draco/#./vendor/jsm/libs/draco/gltf/#g' \
   www/index.html && rm -f www/index.html.bak
 
 echo "== sanity =="
 test -s www/index.html && test -s www/sim.js && test -s www/packs/olive_drive.json
-grep -q "./vendor/three.module.js" www/index.html
+grep -q '"three": *"./vendor/three.module.js"' www/index.html || grep -q '"three":"./vendor/three.module.js"' www/index.html || { echo "importmap not vendored!"; exit 1; }
 ! grep -q "cdn.jsdelivr.net" www/index.html || { echo "CDN refs remain!"; exit 1; }
+! grep -q "/uplandskin/" www/index.html || { echo "uplandskin absolute refs remain!"; exit 1; }
 echo "bundle OK: $(du -sh www | cut -f1)"
