@@ -13,12 +13,9 @@ workflows:
     environment:
       groups:
         - appstore_credentials
+        - circuit_ota
       vars:
         BUNDLE_ID: com.e5enclave.streetcircuit
-        IPA_PUT_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/E5StreetCircuit.ipa?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T040753Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=a7d78248d9e5fb60efefdba8aa8014042eac8ef5c452d24296b22691beced865"
-        ST_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/status.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=44e7b20c3e10f0cb97a3c4fca511a9b04f427a807addd1482033e9b722deacf5"
-        XL_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/xcode.log?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f98a16e722f31bbb57db14fcd916b7107bce4d532ce6f8279ae003acc75da421"
-        SL_URL: "https://fd98d813898e36431c9d6af3b0beeb20.r2.cloudflarestorage.com/e5-ugc-preview/drivegame/app/build/steps.log?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=7d1929bc2193ce7d971f5c3b5925f74c%2F20260805%2Fauto%2Fs3%2Faws4_request&X-Amz-Date=20260805T060937Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=f99d78c03a968e4a6ac8c3f4a225a1ae287072a15b3d8d3762cc7990d3bc7bbd"
       node: 20
       xcode: latest
       cocoapods: default
