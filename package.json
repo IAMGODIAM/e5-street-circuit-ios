@@ -2,19 +2,32 @@
   "name": "e5-street-circuit-ios",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "E5 Street Circuit — the sovereign Upland racing game, packaged for iOS.",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
-    "fetch-assets": "bash scripts/fetch_assets.sh",
-    "patch-ios": "bash scripts/patch_ios.sh"
+    "stage:upstream": "ALLOW_RELEASE_REFRESH=1 bash scripts/fetch_assets.sh",
+    "manifest:release": "node scripts/generate_release_manifest.mjs",
+    "verify:release": "node scripts/verify_release.mjs",
+    "verify:native": "VERIFY_NATIVE_BUNDLE=1 node scripts/verify_release.mjs",
+    "test:sim": "node tests/sim_determinism.mjs",
+    "test:seatlog": "node tests/seatlog_roundtrip.mjs",
+    "check": "npm run verify:release && npm run test:sim && npm run test:seatlog",
+    "ios:sync": "bash scripts/sync_ios.sh",
+    "patch:ios": "bash scripts/patch_ios.sh"
   },
   "dependencies": {
-    "@capacitor/app": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/haptics": "^7.0.0",
-    "@capacitor/ios": "^7.0.0"
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.5.0"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^7.0.0"
+    "@capacitor/cli": "8.5.0"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }

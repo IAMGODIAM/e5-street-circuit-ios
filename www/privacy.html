@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'none'; img-src 'self' data:; object-src 'none'; base-uri 'none'">
+<title>E5 Street Circuit Privacy</title><style>
+body{margin:0;background:#080b11;color:#edf0f5;font:16px/1.6 system-ui,-apple-system,sans-serif}main{max-width:760px;margin:auto;padding:calc(28px + env(safe-area-inset-top)) 24px calc(48px + env(safe-area-inset-bottom))}h1,h2{color:#d4b85d}a{color:#7fd4ff}section{margin:24px 0}.choice{padding:16px;border:1px solid #363b47;border-radius:12px;background:#111620}button{margin:6px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:800;cursor:pointer}.on{background:#d4b85d;color:#211a06}.off{background:#303743;color:#fff}small{color:#aeb6c4}
+</style></head><body><main>
+<p><a href="./index.html">← Return to Street Circuit</a></p><h1>Privacy</h1><p><strong>Effective August 27, 2026.</strong> E5 Street Circuit is operated by E5 Enclave Incorporated.</p>
+<section><h2>Information used</h2><ul><li>Game settings, best-lap ghosts, graphics preferences, and local diagnostics stored on your device.</li><li>If you use a tournament seat, the race and seat identifiers, short-lived seat token, quantized driving-input log, selected vehicle, submitted time, verification hash, and result.</li><li>Public Upland username and vehicle information used to populate the garage and driver profile.</li><li>Optional diagnostics: a random app identifier, build, coarse device class, graphics mode, frame timing, draw-call and triangle counts, control mode, and stability aggregates. Optional diagnostics do not include a seat token, precise location, typed address, or raw motion-sensor readings.</li></ul></section>
+<section><h2>How information is used</h2><p>Information is used only to run races, verify tournament entries, maintain fair results, provide support, prevent abuse, and improve reliability. E5 does not sell personal information and does not use advertising trackers.</p></section>
+<section class="choice"><h2>Optional diagnostics</h2><p id="state">Diagnostics are off.</p><button class="on" id="allow">Allow diagnostics</button><button class="off" id="deny">Keep diagnostics off</button><br><small>You can change this choice at any time. Racing and tournament verification do not require diagnostics.</small></section>
+<section><h2>Services and retention</h2><p>Network functions are delivered through E5-operated Cloudflare services and public Upland services. Race verification and anti-abuse records may be retained for the tournament and dispute period. Optional diagnostics are retained only as long as reasonably necessary for reliability analysis.</p></section>
+<section><h2>Your choices</h2><p>You may race locally without enabling diagnostics. To request access, correction, or deletion of server-held information, use the <a href="https://e5enclave.com/contact/">E5 contact page</a>. The canonical organizational policy is at <a href="https://e5enclave.com/privacy">e5enclave.com/privacy</a>.</p></section>
+<p><a href="./terms.html">Terms</a> · <a href="./credits.html">Credits and licenses</a></p>
+</main><script>
+const key='e5sc_diag_consent',state=document.getElementById('state');
+function draw(){state.textContent=localStorage.getItem(key)==='1'?'Diagnostics are allowed on this device.':'Diagnostics are off on this device.'}
+document.getElementById('allow').onclick=()=>{localStorage.setItem(key,'1');draw()};
+document.getElementById('deny').onclick=()=>{localStorage.setItem(key,'0');localStorage.removeItem('e5sc_did');draw()};draw();
+</script></body></html>
