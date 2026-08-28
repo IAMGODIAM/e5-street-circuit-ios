@@ -1,0 +1,127 @@
+{
+ "generated": "2026-08-04",
+ "owner": "iamgodiam",
+ "cars": [
+  {
+   "dg": 6396813,
+   "name": "2025 UPLAND KARTS Genesis Go Kart",
+   "serial": 80,
+   "cls": "kart",
+   "sim": "cyberkart",
+   "model": "cars/3_335_418.gltf",
+   "thumb": "cars/thumb_6396813.png",
+   "supply": 350,
+   "finishTex": "cars/fin_6396813.jpg"
+  },
+  {
+   "dg": 5873962,
+   "name": "2024 WhiteTiger Vehicle Factory -LA WTSWL24-Merry Kartsmas Go Kart",
+   "serial": 33,
+   "cls": "kart",
+   "sim": "cyberkart",
+   "model": "cars/42_123_197.gltf",
+   "thumb": "cars/thumb_5873962.png",
+   "supply": 200,
+   "finishTex": "cars/fin_5873962.jpg"
+  },
+  {
+   "dg": 5694823,
+   "name": "2024 Vision Velocity Motor Factory Cyberkart One Go Kart",
+   "serial": 99,
+   "cls": "kart",
+   "sim": "cyberkart",
+   "model": "cars/48_149_223.gltf",
+   "thumb": "cars/thumb_5694823.png",
+   "supply": 200,
+   "finishTex": "cars/fin_5694823.jpg"
+  },
+  {
+   "dg": 5688125,
+   "name": "2024 Vision Velocity Motor Factory Cyberkart One Go Kart",
+   "serial": 33,
+   "cls": "kart",
+   "sim": "cyberkart",
+   "model": "cars/48_149_223.gltf",
+   "thumb": "cars/thumb_5688125.png",
+   "supply": 200,
+   "finishTex": "cars/fin_5688125.jpg"
+  },
+  {
+   "dg": 2833663,
+   "name": "2023 UPLAND KARTS Genesis Go Kart",
+   "serial": 75,
+   "cls": "kart",
+   "sim": "cyberkart",
+   "model": "cars/3_15_36.gltf",
+   "thumb": "cars/thumb_2833663.png",
+   "supply": 350,
+   "finishTex": "cars/fin_2833663.jpg"
+  },
+  {
+   "dg": 5730747,
+   "name": "2024 Stock Car Trainer Series V1",
+   "serial": 72,
+   "cls": "stock",
+   "sim": "stockcar",
+   "model": "cars/4_109_160.gltf",
+   "thumb": "cars/thumb_5730747.png",
+   "supply": 144,
+   "finishTex": "cars/fin_5730747.jpg"
+  },
+  {
+   "dg": 5704578,
+   "name": "2024 Stock Car Trainer Series V2",
+   "serial": 47,
+   "cls": "stock",
+   "sim": "stockcar",
+   "model": "cars/4_109_162.gltf",
+   "thumb": "cars/thumb_5704578.png",
+   "supply": 144,
+   "finishTex": "cars/fin_5704578.jpg"
+  },
+  {
+   "dg": 5689292,
+   "name": "2024 Stock Car Competition Series V1",
+   "serial": 15,
+   "cls": "stock",
+   "sim": "stockcar",
+   "model": "cars/4_108_159.gltf",
+   "thumb": "cars/thumb_5689292.png",
+   "supply": 48,
+   "finishTex": "cars/fin_5689292.jpg"
+  },
+  {
+   "dg": 3268949,
+   "name": "2023 MV Motors Series T E",
+   "serial": 21,
+   "cls": "mv",
+   "sim": "mvmotors",
+   "model": "cars/1_10_52.gltf",
+   "thumb": "cars/thumb_3268949.png",
+   "supply": 100,
+   "finishTex": "cars/fin_3268949.jpg"
+  },
+  {
+   "dg": 1128476,
+   "name": "2022 MV Motors Series S E",
+   "serial": 17,
+   "cls": "mv",
+   "sim": "mvmotors",
+   "model": "cars/1_4_6.gltf",
+   "thumb": "cars/thumb_1128476.png",
+   "supply": 40,
+   "finishTex": "cars/fin_1128476.jpg"
+  },
+  {
+   "dg": 1115822,
+   "name": "2022 MV Motors Series V E",
+   "serial": 17,
+   "cls": "mv",
+   "sim": "mvmotors",
+   "model": "cars/1_3_4.gltf",
+   "thumb": "cars/thumb_1115822.png",
+   "supply": 40,
+   "finishTex": "cars/fin_1115822.jpg"
+  }
+ ]
+}

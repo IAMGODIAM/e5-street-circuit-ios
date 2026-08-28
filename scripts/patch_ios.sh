@@ -1,67 +1,48 @@
 #!/usr/bin/env bash
-# E5 Street Circuit — iOS project patch (runs after `cap add ios`, before archive).
-# The native project is generated fresh each build; every platform decision lives here.
+# Apply release-only iOS metadata to the committed Capacitor project.
 set -euo pipefail
-PL="ios/App/App/Info.plist"
-PB="/usr/libexec/PlistBuddy"
 
-echo "== Info.plist: landscape-only racing, hidden status bar, deep links =="
+PLIST="ios/App/App/Info.plist"
+PRIVACY="ios/App/App/PrivacyInfo.xcprivacy"
+PLIST_BUDDY="/usr/libexec/PlistBuddy"
+BUILD_NUM="${BUILD_NUMBER:-${PROJECT_BUILD_NUMBER:-1}}"
 
-# Landscape only (iPhone + iPad)
-$PB -c "Delete :UISupportedInterfaceOrientations" "$PL" 2>/dev/null || true
-$PB -c "Add :UISupportedInterfaceOrientations array" "$PL"
-$PB -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationLandscapeLeft" "$PL"
-$PB -c "Add :UISupportedInterfaceOrientations:1 string UIInterfaceOrientationLandscapeRight" "$PL"
-$PB -c "Delete :UISupportedInterfaceOrientations~ipad" "$PL" 2>/dev/null || true
-$PB -c "Add :UISupportedInterfaceOrientations~ipad array" "$PL"
-$PB -c "Add :UISupportedInterfaceOrientations~ipad:0 string UIInterfaceOrientationLandscapeLeft" "$PL"
-$PB -c "Add :UISupportedInterfaceOrientations~ipad:1 string UIInterfaceOrientationLandscapeRight" "$PL"
-
-# Full-screen game chrome
-$PB -c "Delete :UIStatusBarHidden" "$PL" 2>/dev/null || true
-$PB -c "Add :UIStatusBarHidden bool true" "$PL"
-$PB -c "Delete :UIViewControllerBasedStatusBarAppearance" "$PL" 2>/dev/null || true
-$PB -c "Add :UIViewControllerBasedStatusBarAppearance bool false" "$PL"
-$PB -c "Delete :UIRequiresFullScreen" "$PL" 2>/dev/null || true
-$PB -c "Add :UIRequiresFullScreen bool true" "$PL"
-
-# Unlock ProMotion (120 Hz) for the render loop
-$PB -c "Delete :CADisableMinimumFrameDurationOnPhone" "$PL" 2>/dev/null || true
-$PB -c "Add :CADisableMinimumFrameDurationOnPhone bool true" "$PL"
-
-# Seat deep links: e5circuit://seat?seat=<raceId>&stoken=<token>
-$PB -c "Delete :CFBundleURLTypes" "$PL" 2>/dev/null || true
-$PB -c "Add :CFBundleURLTypes array" "$PL"
-$PB -c "Add :CFBundleURLTypes:0 dict" "$PL"
-$PB -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.e5enclave.streetcircuit" "$PL"
-$PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PL"
-$PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string e5circuit" "$PL"
-
-# Monotonic build number so every OTA reinstall is a clean upgrade
-BUILD_NUM=$(date -u +%y%m%d%H%M)
-$PB -c "Delete :CFBundleVersion" "$PL" 2>/dev/null || true
-$PB -c "Add :CFBundleVersion string $BUILD_NUM" "$PL"
-echo "CFBundleVersion -> $BUILD_NUM"
-
-# Export compliance: no non-exempt encryption -> no per-build questionnaire
-$PB -c "Delete :ITSAppUsesNonExemptEncryption" "$PL" 2>/dev/null || true
-$PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PL"
-
-echo "Info.plist patched:"
-$PB -c "Print :UISupportedInterfaceOrientations" "$PL"
-
-# Optional universal links: export UL_DOMAIN=circuit.example.com before running
-if [ -n "${UL_DOMAIN:-}" ]; then
-  ENT="ios/App/App/App.entitlements"
-  if [ ! -f "$ENT" ]; then
-    cat > "$ENT" <<'XML'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict/></plist>
-XML
-  fi
-  $PB -c "Delete :com.apple.developer.associated-domains" "$ENT" 2>/dev/null || true
-  $PB -c "Add :com.apple.developer.associated-domains array" "$ENT"
-  $PB -c "Add :com.apple.developer.associated-domains:0 string applinks:${UL_DOMAIN}" "$ENT"
-  echo "universal links entitlement added for ${UL_DOMAIN}"
+if [[ ! "$BUILD_NUM" =~ ^[1-9][0-9]{0,3}(\.[0-9]{1,2}){0,2}$ ]]; then
+  echo "Invalid CFBundleVersion '$BUILD_NUM' (expected 1–4 digits, optionally followed by two 1–2 digit components)." >&2
+  exit 1
 fi
+
+set_bool() {
+  "$PLIST_BUDDY" -c "Delete :$1" "$PLIST" 2>/dev/null || true
+  "$PLIST_BUDDY" -c "Add :$1 bool $2" "$PLIST"
+}
+
+# Landscape racing UI on both iPhone and iPad.
+for key in UISupportedInterfaceOrientations 'UISupportedInterfaceOrientations~ipad'; do
+  "$PLIST_BUDDY" -c "Delete :$key" "$PLIST" 2>/dev/null || true
+  "$PLIST_BUDDY" -c "Add :$key array" "$PLIST"
+  "$PLIST_BUDDY" -c "Add :$key:0 string UIInterfaceOrientationLandscapeLeft" "$PLIST"
+  "$PLIST_BUDDY" -c "Add :$key:1 string UIInterfaceOrientationLandscapeRight" "$PLIST"
+done
+
+set_bool UIStatusBarHidden true
+set_bool UIViewControllerBasedStatusBarAppearance false
+set_bool UIRequiresFullScreen true
+set_bool CADisableMinimumFrameDurationOnPhone true
+set_bool ITSAppUsesNonExemptEncryption false
+set_bool UIApplicationSupportsIndirectInputEvents true
+set_bool UIDesignRequiresCompatibility true
+
+# Private seat links. The web layer immediately removes the token from the URL.
+"$PLIST_BUDDY" -c "Delete :CFBundleURLTypes" "$PLIST" 2>/dev/null || true
+"$PLIST_BUDDY" -c "Add :CFBundleURLTypes array" "$PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleURLTypes:0 dict" "$PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.e5enclave.streetcircuit" "$PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PLIST"
+"$PLIST_BUDDY" -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string e5circuit" "$PLIST"
+
+"$PLIST_BUDDY" -c "Delete :CFBundleVersion" "$PLIST" 2>/dev/null || true
+"$PLIST_BUDDY" -c "Add :CFBundleVersion string $BUILD_NUM" "$PLIST"
+
+plutil -lint "$PLIST" "$PRIVACY"
+echo "Street Circuit iOS metadata validated · build $BUILD_NUM"

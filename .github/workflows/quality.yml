@@ -1,0 +1,54 @@
+name: Release quality
+
+on:
+  push:
+    branches: [main, "production-hardening-**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm audit --audit-level=moderate
+
+  ios-simulator:
+    needs: web
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: sudo xcode-select -s /Applications/Xcode_26.4.app
+      - run: npm ci --no-audit --no-fund
+      - run: npm run ios:sync
+      - run: npm run verify:native
+      - run: BUILD_NUMBER="$GITHUB_RUN_NUMBER" bash scripts/patch_ios.sh
+      - run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+      - run: >-
+          xcodebuild build
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath "$RUNNER_TEMP/DerivedData"
+          CODE_SIGNING_ALLOWED=NO

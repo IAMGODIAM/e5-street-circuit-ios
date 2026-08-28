@@ -1,38 +1,32 @@
-# E5 Street Circuit — iOS
+# E5 Street Circuit
 
-The sovereign Upland racing game, packaged for iPhone. Real Bakersfield streets,
-real Upland Speedways, deterministic physics, verified-lap ghosts, and
-drive-your-seat tournament entries — the same engine that settles provably-fair
-races on the E5 Circuit rail.
+E5 Street Circuit is E5 Enclave's deterministic real-map racing game for web and iOS. The release is self-contained: the Capacitor app loads the reviewed, version-controlled `www/` bundle and never snapshots a mutable website during a build.
 
-## Architecture
+## Release contract
 
-- **`www/` is generated, never committed.** `scripts/fetch_assets.sh` snapshots the
-  live game from the E5 R2 mirror (single source of truth) and vendors the render
-  stack (three.js + Draco/KTX2 decoders) into the binary for offline core play.
-- **`ios/` is generated, never committed.** `npx cap add ios` produces the native
-  project fresh each build; `scripts/patch_ios.sh` applies every platform decision
-  (landscape-only, hidden status bar, `e5circuit://` deep links, 120 Hz, export
-  compliance). No hand-maintained Xcode project to drift.
-- **Cloud signing, no Mac.** Primary pipeline: **Codemagic** (`codemagic.yaml`),
-  riding E5's existing `appstore_credentials` group — the same rail that ships
-  Abba Talk — with `submit_to_testflight: true`. Fallback: GitHub Actions with
-  `xcodebuild -allowProvisioningUpdates` cloud signing.
-- **The game itself is shell-aware.** The web build carries a Capacitor bridge that
-  no-ops in browsers: haptics on crashes/laps/verdicts, seat-token deep links,
-  AudioContext lifecycle hardening. One `index.html` serves web and app.
+- Node.js 22 or newer; dependencies are pinned in `package-lock.json`.
+- Capacitor 8 with a committed Swift Package Manager iOS project.
+- iOS 15 minimum; Xcode 26.4 in CI.
+- Core free roam, courses, cars, and deterministic physics are bundled. Live seats, records, and optional diagnostics are network features.
+- Seat tokens move immediately into session storage and are removed from visible URLs.
+- Diagnostics are off until the player opts in on `privacy.html`.
+- Every web release is recorded in `release-manifest.json`; CI rejects drift.
 
-## Build
+## Verify locally
 
-See **HANDSTEPS.md** — one-time setup (~10 min on the existing E5 Codemagic rail), then one button per build.
-
-## Layout
-
-```
-assets/            icon + splash source art (all sizes generated in CI)
-scripts/           fetch_assets.sh · patch_ios.sh
-.github/workflows/ testflight.yml
-capacitor.config.json · package.json
+```sh
+npm ci
+npm run check
+npm run ios:sync
+npm run verify:native
 ```
 
-— E5 Enclave · built on Upland, beyond Upland
+`npm run check` verifies the immutable source bundle, deterministic twin simulation, and seat-log codec round trips. After sync, `npm run verify:native` proves the generated native copy matches every manifest hash. Do not run `cap add ios` or download game assets in CI; both `www/` and `ios/` are reviewed source.
+
+## Shipping
+
+- Every push and pull request runs the web gate and an unsigned iOS Simulator compile in `.github/workflows/quality.yml`.
+- `.github/workflows/testflight.yml` is a manual cloud-signed TestFlight upload using repository secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, and `ASC_KEY_P8`.
+- `codemagic.yaml` provides equivalent Ad Hoc and TestFlight workflows using E5's existing credential groups.
+
+See `RELEASE_CHECKLIST.md` for App Store Connect declarations and reviewer notes.

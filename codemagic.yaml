@@ -1,128 +1,74 @@
 workflows:
-  ios-circuit-adhoc:
-    name: E5 Street Circuit — Ad Hoc OTA
+  street-circuit-adhoc:
+    name: E5 Street Circuit — Ad Hoc
     instance_type: mac_mini_m2
-    max_build_duration: 45
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: circuit-build
-          include: true
-          source: true
+    max_build_duration: 60
     environment:
       groups:
         - appstore_credentials
         - circuit_ota
+      node: 22
+      xcode: 26.4
       vars:
         BUNDLE_ID: com.e5enclave.streetcircuit
-      node: 20
-      xcode: latest
-      cocoapods: default
     scripts:
-      - name: Install JS dependencies
+      - name: Install and verify immutable release
         script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 1: Install JS dependencies | $(date -u +%H:%M:%SZ)" || true
-          npm install --no-audit --no-fund 2>&1 | tail -5
-      - name: Snapshot the game bundle from the E5 mirror
+          npm ci --no-audit --no-fund
+          npm run check
+      - name: Sync committed native project
         script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 2: Snapshot the game bundle from the E5 mirror | $(date -u +%H:%M:%SZ)" || true
-          bash scripts/fetch_assets.sh 2>&1 | tail -8
-      - name: Generate the iOS project
+          npm run ios:sync
+          npm run verify:native
+          BUILD_NUMBER="${PROJECT_BUILD_NUMBER:-1}" bash scripts/patch_ios.sh
+      - name: Install Ad Hoc signing
         script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 3: Generate the iOS project | $(date -u +%H:%M:%SZ)" || true
-          npx cap add ios
-      - name: Icons and splash (best effort)
-        script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 4: Icons and splash (best effort) | $(date -u +%H:%M:%SZ)" || true
-          npx capacitor-assets generate --ios || echo "asset generation skipped — template icons stand"
-      - name: Patch platform config
-        script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 5: Patch platform config | $(date -u +%H:%M:%SZ)" || true
-          bash scripts/patch_ios.sh
-      - name: Sync web bundle into the app
-        script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 6: Sync web bundle into the app | $(date -u +%H:%M:%SZ)" || true
-          npx cap sync ios
-      - name: Signing (Ad Hoc, auto-provision)
-        script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 7: Signing (Ad Hoc, auto-provision) | $(date -u +%H:%M:%SZ)" || true
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_ADHOC \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
-            --create
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_ADHOC --certificate-key=@env:CERTIFICATE_PRIVATE_KEY --create
           keychain add-certificates
-          xcode-project use-profiles
-      - name: Build ipa
+          xcode-project use-profiles --project ios/App/App.xcodeproj
+      - name: Build IPA
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+      - name: Publish optional OTA mirror
         script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 8: Build ipa | $(date -u +%H:%M:%SZ)" || true
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App
-      - name: Publish the IPA to the E5 OTA mirror
-        script: |
-          curl -fsS -X PUT "$ST_URL" -d "stage 9: Publish the IPA to the E5 OTA mirror | $(date -u +%H:%M:%SZ)" || true
-          IPA=$(ls build/ios/ipa/*.ipa | head -1)
-          echo "uploading $IPA ($(du -h "$IPA" | cut -f1))"
-          curl -fsS -X PUT --upload-file "$IPA" "$IPA_PUT_URL"
-          curl -fsS -X PUT "$ST_URL" -d "DONE: ipa published | $(date -u +%H:%M:%SZ)" || true
+          if [ -n "${IPA_PUT_URL:-}" ]; then
+            IPA_PATH=$(find build/ios/ipa -name '*.ipa' -type f -print -quit)
+            test -n "$IPA_PATH"
+            curl -fsS -X PUT --upload-file "$IPA_PATH" "$IPA_PUT_URL"
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      scripts:
-        - name: Evidence upload (runs on success AND failure)
-          script: |
-            LOG=$(ls -t /tmp/xcodebuild_logs/*.log 2>/dev/null | head -1)
-            if [ -n "$LOG" ]; then tail -c 200000 "$LOG" | curl -fsS -X PUT --data-binary @- "$XL_URL" || true; fi
-            { echo "build finished $(date -u +%H:%M:%SZ)"; ls -la build/ios/ipa/ 2>/dev/null; } | curl -fsS -X PUT --data-binary @- "$SL_URL" || true
 
-  ios-testflight:
+  street-circuit-testflight:
     name: E5 Street Circuit — TestFlight
     instance_type: mac_mini_m2
-    max_build_duration: 45
+    max_build_duration: 60
     environment:
       groups:
-        - appstore_credentials   # the E5 group already used by Abba Talk
+        - appstore_credentials
+      node: 22
+      xcode: 26.4
       vars:
         BUNDLE_ID: com.e5enclave.streetcircuit
-      node: 20
-      xcode: latest
-      cocoapods: default
     scripts:
-      - name: Install JS dependencies
+      - name: Install and verify immutable release
         script: |
-          npm install --no-audit --no-fund
-      - name: Snapshot the game bundle from the E5 mirror
+          npm ci --no-audit --no-fund
+          npm run check
+      - name: Sync committed native project
         script: |
-          bash scripts/fetch_assets.sh
-      - name: Generate the iOS project
-        script: |
-          npx cap add ios
-      - name: Generate icons and splash screens
-        script: |
-          npx capacitor-assets generate --ios
-      - name: Patch platform config (landscape, deep links, 120Hz)
-        script: |
-          bash scripts/patch_ios.sh
-      - name: Sync web bundle into the app
-        script: |
-          npx cap sync ios
-      - name: Signing
+          npm run ios:sync
+          npm run verify:native
+          BUILD_NUMBER="${PROJECT_BUILD_NUMBER:-1}" bash scripts/patch_ios.sh
+      - name: Install App Store signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
-            --create
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --certificate-key=@env:CERTIFICATE_PRIVATE_KEY --create
           keychain add-certificates
-          xcode-project use-profiles
-      - name: Build ipa
-        script: |
-          xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
-            --scheme App
+          xcode-project use-profiles --project ios/App/App.xcodeproj
+      - name: Build IPA
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

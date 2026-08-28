@@ -1,7 +1,13 @@
 node_modules/
-www/
-ios/
 build/
-assets/
+.capacitor/
 *.p8
 .DS_Store
+review/
+.env
+.env.*
+!.env.example
+*.p12
+*.pem
+*.mobileprovision
+secrets/

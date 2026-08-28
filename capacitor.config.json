@@ -7,6 +7,7 @@
     "contentInset": "never",
     "backgroundColor": "#0a0c10",
     "preferredContentMode": "mobile",
-    "scrollEnabled": false
+    "scrollEnabled": false,
+    "webContentsDebuggingEnabled": false
   }
 }
