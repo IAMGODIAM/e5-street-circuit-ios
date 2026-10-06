@@ -48,6 +48,18 @@
     border:1px solid rgba(201,168,76,.45);color:var(--gold);padding:10px 16px;border-radius:10px;
     font-weight:800;font-style:italic;letter-spacing:.08em;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
   .toast.on{opacity:1}
+  .welcome{display:none;margin-top:14px;padding:10px 12px;border-radius:10px;border:1px solid rgba(55,194,74,.45);
+    background:rgba(55,194,74,.10);font-size:13px;line-height:1.5;letter-spacing:.04em}
+  .welcome.on{display:block}
+  .welcome b{color:var(--green)}
+  .welcome .sim{color:var(--gold);font-weight:800;letter-spacing:.14em;font-size:10px}
+  #playtestPanel{display:none;border-color:rgba(201,168,76,.55)}
+  #playtestPanel.on{display:block}
+  #traceTail{margin-top:10px;max-height:180px;overflow:auto;font:11px/1.45 ui-monospace,Menlo,monospace;color:#cfd6e2;
+    background:rgba(0,0,0,.35);border-radius:8px;padding:8px;white-space:pre-wrap}
+  #exportBox{display:none;width:100%;height:140px;margin-top:10px;font:11px ui-monospace,Menlo,monospace;
+    background:#05080d;color:#cfd6e2;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px}
+  #exportBox.on{display:block}
   footer{max-width:720px;margin:18px auto 0;font-size:11px;color:var(--muted);letter-spacing:.08em;line-height:1.6}
   footer a{color:#c6ceda}
   .flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -84,8 +96,29 @@
     <div class="row" style="margin-top:16px;justify-content:flex-start">
       <button class="btn green" id="claimBtn">CLAIM CRATES</button>
       <button class="btn gold" id="upgradeBtn">UPGRADE DEPOT</button>
-      <button class="btn ghost" id="simulateBtn">+5 MIN (DEV)</button>
     </div>
+    <div class="welcome" id="welcome" role="status" aria-live="polite"></div>
+  </section>
+  <section class="panel" id="playtestPanel" aria-label="Playtest harness (dev only)">
+    <div style="font-size:11px;letter-spacing:.22em;color:var(--gold);font-weight:800">PLAYTEST HARNESS · ?playtest=1 · DEV ONLY</div>
+    <p style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5">
+      AWAY buttons rewind the local save and reload, so the <b>real return path</b> runs. Simulated returns are
+      logged <code>simulated:true</code> and never count as real return-play.
+    </p>
+    <div class="row" style="margin-top:10px;justify-content:flex-start">
+      <button class="btn ghost" data-away="5">AWAY 5 MIN</button>
+      <button class="btn ghost" data-away="60">AWAY 1 H</button>
+      <button class="btn ghost" data-away="480">AWAY 8 H</button>
+      <button class="btn ghost" data-away="1440">AWAY 24 H</button>
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:flex-start">
+      <button class="btn ghost" id="exportBtn">EXPORT TRACE</button>
+      <button class="btn ghost" id="clearTraceBtn">CLEAR TRACE</button>
+      <button class="btn ghost" id="resetBtn">RESET SAVE</button>
+    </div>
+    <div id="traceSummary" style="margin-top:10px;font-size:12px;color:#cfd6e2"></div>
+    <div id="traceTail"></div>
+    <textarea id="exportBox" readonly aria-label="Exported playtest trace JSON"></textarea>
   </section>
   <section class="panel">
     <div class="row" style="margin-bottom:10px">
@@ -104,7 +137,7 @@
   <section class="panel">
     <div style="font-size:11px;letter-spacing:.22em;color:var(--gold);font-weight:800">DAY-0 STUBS</div>
     <p style="margin-top:8px;font-size:13px;line-height:1.55;color:#cfd6e2">
-      <b>Playtest (return after timer):</b> <span id="playtestStub">PLACEHOLDER — fill by day 7 internal playtest.</span><br>
+      <b>Playtest (return after timer):</b> <span id="playtestStub">PLACEHOLDER — fill by day 7 internal playtest (harness: <code>depot-idle.html?playtest=1</code>).</span><br>
       <b>Who pays (price + channel):</b> <span id="whoPaysStub">UNVERIFIED — no buyer named; recommend kill if still blank at day 7.</span>
     </p>
   </section>
@@ -117,7 +150,9 @@
 </footer>
 <script type="module">
 import {
-  SAVE_KEY, accrue, claim, loadLocal, ratePerMin, capCrates, saveLocal, toggleBay, upgrade,
+  DEPOT_IDLE_VERSION, SAVE_KEY, TRACE_KEY, accrue, appendTrace, capCrates, claim, loadTrace, parseSave,
+  ratePerMin, returnReport, returnReportFromState, rewindSave, saveLocal, saveTrace, serialize, snap,
+  summarizeTrace, toggleBay, upgrade, defaultState,
 } from './depot-idle-core.js';
 
 const $ = (id) => document.getElementById(id);
@@ -130,13 +165,35 @@ function toast(msg) {
   toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1400);
 }
 
+const params = new URLSearchParams(location.search);
+const PLAYTEST = params.get('playtest') === '1';
 const seed = await (await fetch('./depot/olive_depot_seed.json', { cache: 'no-store' })).json();
+
+// --- ?playtest=1&away=<minutes>: rewind once, then strip param so reloads don't re-apply ---
+if (PLAYTEST && params.has('away')) {
+  const mins = Math.max(0, Number(params.get('away')) || 0);
+  if (mins > 0) localStorage.setItem(SAVE_KEY, rewindSave(localStorage.getItem(SAVE_KEY), mins * 60_000, Date.now()));
+  params.delete('away');
+  history.replaceState(null, '', location.pathname + '?' + params.toString());
+}
+
+// --- Instrumented trace (find / explain / rerun). Local only; never leaves the device. ---
+let trace = loadTrace(localStorage);
+function log(evt) {
+  trace = appendTrace(trace, { t: Date.now(), v: DEPOT_IDLE_VERSION, ...evt });
+  saveTrace(trace, localStorage);
+  if (PLAYTEST) { console.info('[depot-idle:trace]', evt.kind, evt); renderTrace(); }
+}
+
+// --- Open: explain the offline gap BEFORE accruing, then load ---
 const openedAt = Date.now();
-let rawSave = null;
-try { rawSave = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { rawSave = null; }
-const lastMsBeforeSession = rawSave && Number(rawSave.lastMs) ? Number(rawSave.lastMs) : openedAt;
-const offlineGapMs = Math.max(0, openedAt - lastMsBeforeSession);
-let state = loadLocal(seed, localStorage, openedAt);
+const rawSave = localStorage.getItem(SAVE_KEY);
+const openReport = returnReport(seed, rawSave, openedAt);
+const parsed = parseSave(rawSave, seed, openedAt);
+let state = parsed ? accrue(seed, parsed.state, openedAt) : defaultState(seed, openedAt);
+saveLocal(state); // clears any playtest ffMs marker
+log(openReport);
+let lastReport = openReport;
 
 function fmt(n) {
   return (Math.floor(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -148,6 +205,16 @@ function fmtDur(ms) {
   if (m < 60) return m + 'm ' + (s % 60) + 's';
   const h = Math.floor(m / 60);
   return h + 'h ' + (m % 60) + 'm';
+}
+
+function showWelcome(r) {
+  const el = $('welcome');
+  if (r.kind !== 'return') { el.classList.remove('on'); return; }
+  el.innerHTML = `${r.simulated ? '<span class="sim">SIMULATED (PLAYTEST) · </span>' : ''}`
+    + `WHILE YOU WERE AWAY <b>${fmtDur(r.gapMs)}</b> · DEPOT LOADED <b>+${fmt(r.gained)} CR</b>`
+    + (r.capped ? ` · <b style="color:var(--gold)">CAP HIT</b> (${fmtDur(r.wastedMs)} idle at ${r.cap})` : '')
+    + ' · TAP CLAIM';
+  el.classList.add('on');
 }
 
 function drawMap() {
@@ -217,8 +284,12 @@ function renderBays() {
     btn.className = 'btn ghost';
     btn.textContent = state.bayOn[i] ? 'ON' : 'OFF';
     btn.onclick = () => {
-      state = toggleBay(seed, state, i, Date.now());
+      const now = Date.now();
+      const before = snap(state);
+      state = toggleBay(seed, state, i, now);
       saveLocal(state);
+      log({ kind: 'toggle', bay: i, nowMs: now, before, after: snap(state) });
+      renderBays();
       paint();
       toast(state.bayOn[i] ? 'BAY ONLINE' : 'BAY OFFLINE');
     };
@@ -234,39 +305,122 @@ function paint() {
   $('level').textContent = String(state.level);
   $('rate').innerHTML = `${fmt(ratePerMin(seed, state))} <small>/MIN</small>`;
   $('cap').textContent = String(capCrates(seed, state));
-  $('offline').textContent = offlineGapMs > 1000 ? fmtDur(offlineGapMs) : 'live';
+  $('offline').textContent = lastReport.kind === 'return' ? fmtDur(lastReport.gapMs) : 'live';
   $('hqLine').textContent = `HQ ${seed.hq.addr} · pack ${seed.source.pack_title} · save ${SAVE_KEY}`;
   $('upgradeBtn').disabled = state.level >= (seed.economy.max_level || 5);
   drawMap();
 }
 
 $('claimBtn').onclick = () => {
-  const r = claim(seed, state, Date.now());
+  const now = Date.now();
+  const before = snap(state);
+  const r = claim(seed, state, now);
   state = r.state;
   saveLocal(state);
+  log({ kind: 'claim', nowMs: now, claimed: r.claimed, before, after: snap(state) });
+  $('welcome').classList.remove('on');
   paint();
   toast(r.claimed > 0 ? `CLAIMED ${fmt(r.claimed)} CR` : 'NOTHING TO CLAIM');
 };
 $('upgradeBtn').onclick = () => {
-  const r = upgrade(seed, state, Date.now());
+  const now = Date.now();
+  const before = snap(state);
+  const r = upgrade(seed, state, now);
   state = r.state;
   saveLocal(state);
+  log({ kind: 'upgrade', nowMs: now, ok: r.ok, reason: r.reason, before, after: snap(state) });
   paint();
   toast(r.ok ? `DEPOT → L${state.level}` : (r.reason === 'need_crates' ? `NEED ${seed.economy.upgrade_cost_crates} CR` : 'MAX LEVEL'));
 };
-$('simulateBtn').onclick = () => {
-  // Dev helper: rewind lastMs 5 minutes without touching network — proves offline accrual UI
-  state = { ...state, lastMs: Date.now() - 5 * 60_000 };
+
+// --- App lifecycle: on iOS the WKWebView is usually NOT reloaded when the app is backgrounded,
+//     so a return is a visibility resume, not a page open. Stop the tick while hidden so lastMs
+//     freezes at the moment the player left; the resume report then explains the real gap. ---
+let tick = 0;
+let leaving = false; // set by playtest AWAY/RESET so unload handlers don't overwrite the rewound save
+function startTick() { clearInterval(tick); tick = setInterval(() => { paint(); saveLocal(state); }, 1000); }
+document.addEventListener('visibilitychange', () => {
+  if (leaving) return;
+  const now = Date.now();
+  if (document.visibilityState === 'hidden') {
+    clearInterval(tick);
+    state = accrue(seed, state, now);
+    saveLocal(state);
+    log({ kind: 'hidden', nowMs: now, state: snap(state) });
+  } else {
+    const before = snap(state);
+    const r = returnReportFromState(seed, before, now, { via: 'resume' });
+    state = accrue(seed, state, now);
+    saveLocal(state);
+    log(r);
+    lastReport = r;
+    showWelcome(r);
+    paint();
+    startTick();
+  }
+});
+addEventListener('pagehide', () => {
+  if (leaving) return;
   state = accrue(seed, state, Date.now());
   saveLocal(state);
-  paint();
-  toast('+5 MIN ACCRUED');
-};
+});
 
+// --- Playtest harness (dev only, ?playtest=1) ---
+function renderTrace() {
+  if (!PLAYTEST) return;
+  const sum = summarizeTrace(trace);
+  $('traceSummary').innerHTML = `real returns <b>${sum.realReturns}</b> (max gap ${fmtDur(sum.maxRealGapMs)}, capped ${sum.realReturnsCapped})`
+    + ` · simulated ${sum.simulatedReturns} · claims after real return ${sum.claimsAfterRealReturn} · events ${sum.events}`;
+  $('traceTail').textContent = trace.slice(-12).map(e => {
+    const at = new Date(e.nowMs ?? e.t).toLocaleTimeString();
+    const extra = e.gapMs != null ? ` gap=${fmtDur(e.gapMs)} +${fmt(e.gained || 0)}${e.capped ? ' CAP' : ''}${e.simulated ? ' SIM' : ''}`
+      : e.claimed != null ? ` +${fmt(e.claimed)}` : e.kind === 'ff' ? ` away=${fmtDur(e.awayMs)}` : '';
+    return `${at} ${e.kind}${e.via ? '/' + e.via : ''}${extra}`;
+  }).join('\n');
+}
+if (PLAYTEST) {
+  $('playtestPanel').classList.add('on');
+  document.querySelectorAll('[data-away]').forEach(btn => {
+    btn.onclick = () => {
+      const mins = Number(btn.dataset.away);
+      const now = Date.now();
+      const before = snap(state);
+      state = accrue(seed, state, now);
+      const after = { ...snap(state), lastMs: state.lastMs - mins * 60_000 };
+      log({ kind: 'ff', nowMs: now, awayMs: mins * 60_000, before, after });
+      clearInterval(tick);
+      leaving = true;
+      localStorage.setItem(SAVE_KEY, rewindSave(serialize(state), mins * 60_000, now));
+      location.reload();
+    };
+  });
+  $('exportBtn').onclick = async () => {
+    const bundle = {
+      kind: 'e5sc_depot_idle_playtest_export', v: DEPOT_IDLE_VERSION, exportedAt: new Date().toISOString(),
+      ua: navigator.userAgent, saveKey: SAVE_KEY, traceKey: TRACE_KEY,
+      save: JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'), summary: summarizeTrace(trace), trace,
+    };
+    const txt = JSON.stringify(bundle, null, 1);
+    const box = $('exportBox');
+    box.value = txt; box.classList.add('on'); box.select();
+    try { await navigator.clipboard.writeText(txt); toast('TRACE COPIED'); } catch { toast('TRACE IN BOX ↓'); }
+  };
+  $('clearTraceBtn').onclick = () => { trace = []; saveTrace(trace, localStorage); renderTrace(); toast('TRACE CLEARED'); };
+  $('resetBtn').onclick = () => {
+    clearInterval(tick);
+    leaving = true;
+    localStorage.removeItem(SAVE_KEY);
+    log({ kind: 'reset' });
+    location.reload();
+  };
+  renderTrace();
+}
+
+showWelcome(openReport);
 renderBays();
 paint();
-setInterval(() => { paint(); saveLocal(state); }, 1000);
-console.info('[depot-idle]', seed.seal, 'v0', { hq: seed.hq.addr, save: SAVE_KEY });
+startTick();
+console.info('[depot-idle]', seed.seal, 'v' + DEPOT_IDLE_VERSION, { hq: seed.hq.addr, save: SAVE_KEY, playtest: PLAYTEST, open: openReport.kind });
 </script>
 </body>
 </html>

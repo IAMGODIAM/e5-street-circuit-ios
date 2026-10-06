@@ -17,7 +17,8 @@
     "check": "npm run verify:release && npm run test:sim && npm run test:seatlog && npm run test:depot",
     "ios:sync": "bash scripts/sync_ios.sh",
     "patch:ios": "bash scripts/patch_ios.sh",
-    "test:depot": "node tests/depot_idle_accrual.mjs"
+    "test:depot": "node tests/depot_idle_accrual.mjs",
+    "playtest:replay": "node scripts/depot_replay.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",

@@ -2,8 +2,8 @@
   "schema": 1,
   "appId": "com.e5enclave.streetcircuit",
   "source": "version-controlled www bundle; refreshes are explicit and reviewed",
-  "releaseId": "1c486ab6af50bdf0c277ce05aa6f35310dff8b2102dc60dab81f7b95be6e7be4",
-  "totalBytes": 32276996,
+  "releaseId": "26ed62dc8c605d966a0b1747efaef7952a14eb776b2b5ff15b82fbc3a3d7d97a",
+  "totalBytes": 32291604,
   "files": [
     {
       "path": "canonical_record.json",
@@ -197,13 +197,13 @@
     },
     {
       "path": "depot-idle-core.js",
-      "bytes": 4420,
-      "sha256": "d9be0c8e7a4748d86f305195ab43b5d04ee1becaeab9eda34a6446fb157fa2bf"
+      "bytes": 11251,
+      "sha256": "ec76afaaa60ff3650014752973d04695bd4c949a306e4ba5b5c1e419eb8b642f"
     },
     {
       "path": "depot-idle.html",
-      "bytes": 12495,
-      "sha256": "d715aed2011695ed64bab7d81ba8483aa473d959cab8700e492ee72114684e2c"
+      "bytes": 20272,
+      "sha256": "76af31be8510cc9c548cf0199837bcb32eabd647892db676fe20efb335e14c06"
     },
     {
       "path": "index.html",

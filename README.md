@@ -40,6 +40,7 @@ Offline logistics idle prototype on Olive Drive assets. **IAMGODIAM C-Corp game 
 npx --yes serve www -p 4173
 # → http://127.0.0.1:4173/depot-idle.html
 npm run test:depot
+# playtest harness (dev only): depot-idle.html?playtest=1 · replay: npm run playtest:replay -- export.json
 ```
 
 Constraints: offline only · no Upland write · no Maps bill · no parcel buy · $0. Seed: `www/depot/olive_depot_seed.json` (from `olive_drive` pack + `6704 IRON OAK DR`). Kill rule and stubs: `docs/olive-depot-idle/`.
