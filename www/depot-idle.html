@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+<meta name="theme-color" content="#0b0f14">
+<title>Olive Depot Idle — Street Circuit thin-rail</title>
+<style>
+  :root{
+    --gold:#c9a84c; --green:#37c24a; --ink:#0b0f14; --panel:rgba(10,13,20,.88);
+    --muted:#aeb6c4; --hud:#e8ecf3;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%;background:#0b0f14;color:var(--hud);
+    font-family:ui-rounded,'Avenir Next',system-ui,-apple-system,sans-serif}
+  body{padding:calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right))
+       calc(24px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
+       background:radial-gradient(120% 90% at 50% 0%,rgba(10,16,28,.55) 0%,rgba(7,10,16,.96) 72%)}
+  header{max-width:720px;margin:0 auto 18px}
+  .eyebrow{font-size:11px;letter-spacing:.42em;font-weight:700;color:var(--gold);margin-bottom:8px}
+  h1{font-size:clamp(28px,8vw,44px);font-style:italic;font-weight:800;letter-spacing:.02em;line-height:1}
+  h1 .g{color:var(--gold)}
+  .sub{margin-top:10px;font-size:12px;letter-spacing:.18em;color:var(--muted);font-weight:600}
+  .badge{display:inline-block;margin-top:12px;padding:6px 10px;border-radius:8px;
+    border:1px solid rgba(201,168,76,.35);color:var(--gold);font-size:10px;letter-spacing:.16em;font-weight:700}
+  main{max-width:720px;margin:0 auto;display:grid;gap:14px}
+  .panel{background:var(--panel);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:16px 18px;
+    backdrop-filter:blur(8px)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .stat label{display:block;font-size:10px;letter-spacing:.22em;color:var(--muted);font-weight:700;margin-bottom:4px}
+  .stat .v{font-size:28px;font-style:italic;font-weight:800}
+  .stat .v small{font-size:13px;letter-spacing:.14em;font-weight:700;opacity:.8}
+  .btn{appearance:none;border:0;border-radius:10px;padding:12px 20px;font-family:inherit;
+    font-size:14px;font-weight:800;font-style:italic;letter-spacing:.1em;cursor:pointer}
+  .btn.green{background:var(--green);color:#04220a}
+  .btn.gold{background:var(--gold);color:#241a04}
+  .btn.ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  canvas#map{width:100%;height:220px;display:block;border-radius:12px;background:#101623;border:1px solid rgba(255,255,255,.1)}
+  .bay{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;
+    border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+  .bay:first-child{border-top:0}
+  .bay .addr{font-weight:700;letter-spacing:.04em}
+  .bay .meta{font-size:11px;color:var(--muted);letter-spacing:.1em;margin-top:3px}
+  .toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);background:rgba(8,12,18,.92);
+    border:1px solid rgba(201,168,76,.45);color:var(--gold);padding:10px 16px;border-radius:10px;
+    font-weight:800;font-style:italic;letter-spacing:.08em;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.on{opacity:1}
+  footer{max-width:720px;margin:18px auto 0;font-size:11px;color:var(--muted);letter-spacing:.08em;line-height:1.6}
+  footer a{color:#c6ceda}
+  .flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .flag{font-size:10px;letter-spacing:.14em;padding:5px 8px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);color:#cfd6e2}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<header>
+  <div class="eyebrow">STREET CIRCUIT · THIN-RAIL</div>
+  <h1>OLIVE <span class="g">DEPOT IDLE</span></h1>
+  <div class="sub">6704 IRON OAK DR · OFFLINE · $0 · NO UPLAND WRITE</div>
+  <div class="badge" id="entityBadge">IAMGODIAM C-CORP IP · NOT E5 CHARITY REVENUE</div>
+  <div class="flags">
+    <span class="flag">OFFLINE ONLY</span>
+    <span class="flag">NO MAPS BILL</span>
+    <span class="flag">NO PARCEL BUY</span>
+    <span class="flag">SEAL A · 7-DAY BOX</span>
+  </div>
+</header>
+<main>
+  <section class="panel">
+    <div class="row">
+      <div class="stat"><label>PENDING CRATES</label><div class="v" id="pending">0 <small>CR</small></div></div>
+      <div class="stat"><label>WALLET</label><div class="v" id="wallet">0 <small>CR</small></div></div>
+      <div class="stat"><label>DEPOT LVL</label><div class="v" id="level">1</div></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <div class="stat"><label>RATE</label><div class="v" id="rate">— <small>/MIN</small></div></div>
+      <div class="stat"><label>CAP</label><div class="v" id="cap">—</div></div>
+      <div class="stat"><label>OFFLINE</label><div class="v" id="offline">0s</div></div>
+    </div>
+    <div class="row" style="margin-top:16px;justify-content:flex-start">
+      <button class="btn green" id="claimBtn">CLAIM CRATES</button>
+      <button class="btn gold" id="upgradeBtn">UPGRADE DEPOT</button>
+      <button class="btn ghost" id="simulateBtn">+5 MIN (DEV)</button>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="row" style="margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;letter-spacing:.22em;color:var(--gold);font-weight:800">DEPOT MAP · LOCAL SEED</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px" id="hqLine">HQ loading…</div>
+      </div>
+      <a class="btn ghost" href="./index.html" style="text-decoration:none">← RACING</a>
+    </div>
+    <canvas id="map" width="680" height="220" aria-label="Olive depot local map"></canvas>
+  </section>
+  <section class="panel">
+    <div style="font-size:11px;letter-spacing:.22em;color:var(--gold);font-weight:800;margin-bottom:4px">LOADING BAYS · MINE PARCELS</div>
+    <div id="bays"></div>
+  </section>
+  <section class="panel">
+    <div style="font-size:11px;letter-spacing:.22em;color:var(--gold);font-weight:800">DAY-0 STUBS</div>
+    <p style="margin-top:8px;font-size:13px;line-height:1.55;color:#cfd6e2">
+      <b>Playtest (return after timer):</b> <span id="playtestStub">PLACEHOLDER — fill by day 7 internal playtest.</span><br>
+      <b>Who pays (price + channel):</b> <span id="whoPaysStub">UNVERIFIED — no buyer named; recommend kill if still blank at day 7.</span>
+    </p>
+  </section>
+</main>
+<footer>
+  Reuses <code>www/packs/olive_drive.json</code> + <code>courses.json</code> home pin via slim seed
+  <code>www/depot/olive_depot_seed.json</code>. No Upland API, no Google Maps, no spend.
+  Kill rule: no return-play AND no who-pays by ~2026-10-13 3 AM ET → keep assets as library.
+  · <a href="./privacy.html">Privacy</a>
+</footer>
+<script type="module">
+import {
+  SAVE_KEY, accrue, claim, loadLocal, ratePerMin, capCrates, saveLocal, toggleBay, upgrade,
+} from './depot-idle-core.js';
+
+const $ = (id) => document.getElementById(id);
+const toastEl = $('toast');
+let toastTimer = 0;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1400);
+}
+
+const seed = await (await fetch('./depot/olive_depot_seed.json', { cache: 'no-store' })).json();
+const openedAt = Date.now();
+let rawSave = null;
+try { rawSave = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { rawSave = null; }
+const lastMsBeforeSession = rawSave && Number(rawSave.lastMs) ? Number(rawSave.lastMs) : openedAt;
+const offlineGapMs = Math.max(0, openedAt - lastMsBeforeSession);
+let state = loadLocal(seed, localStorage, openedAt);
+
+function fmt(n) {
+  return (Math.floor(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+function fmtDur(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  if (s < 60) return s + 's';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ' + (s % 60) + 's';
+  const h = Math.floor(m / 60);
+  return h + 'h ' + (m % 60) + 'm';
+}
+
+function drawMap() {
+  const c = $('map');
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#101623';
+  ctx.fillRect(0, 0, w, h);
+  const pts = [{ x: seed.hq.x, z: seed.hq.z, hq: true }, ...seed.bays.map(b => ({ x: b.x, z: b.z, hq: false }))];
+  const xs = pts.map(p => p.x), zs = pts.map(p => p.z);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+  const pad = 28;
+  const sx = (w - pad * 2) / Math.max(1, maxX - minX);
+  const sz = (h - pad * 2) / Math.max(1, maxZ - minZ);
+  const s = Math.min(sx, sz);
+  const ox = (w - (maxX - minX) * s) / 2;
+  const oz = (h - (maxZ - minZ) * s) / 2;
+  const proj = (x, z) => [ox + (x - minX) * s, oz + (z - minZ) * s];
+
+  // faint grid
+  ctx.strokeStyle = 'rgba(255,255,255,.06)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 8; i++) {
+    const x = (w / 8) * i;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    const y = (h / 6) * i;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // links HQ → bays
+  const [hx, hz] = proj(seed.hq.x, seed.hq.z);
+  ctx.strokeStyle = 'rgba(201,168,76,.35)';
+  ctx.setLineDash([4, 6]);
+  for (const b of seed.bays) {
+    const [bx, bz] = proj(b.x, b.z);
+    ctx.beginPath(); ctx.moveTo(hx, hz); ctx.lineTo(bx, bz); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  seed.bays.forEach((b, i) => {
+    const [bx, bz] = proj(b.x, b.z);
+    ctx.beginPath();
+    ctx.fillStyle = state.bayOn[i] ? '#37c24a' : 'rgba(255,255,255,.25)';
+    ctx.arc(bx, bz, 7, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.beginPath();
+  ctx.fillStyle = '#c9a84c';
+  ctx.arc(hx, hz, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 11px system-ui';
+  ctx.fillText('HQ', hx + 14, hz + 4);
+}
+
+function renderBays() {
+  const root = $('bays');
+  root.innerHTML = '';
+  seed.bays.forEach((b, i) => {
+    const row = document.createElement('div');
+    row.className = 'bay';
+    row.innerHTML = `<div><div class="addr">${b.addr}</div><div class="meta">${b.dist_m}m · +${b.rate_crates_per_min}/min · id ${b.id}</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'btn ghost';
+    btn.textContent = state.bayOn[i] ? 'ON' : 'OFF';
+    btn.onclick = () => {
+      state = toggleBay(seed, state, i, Date.now());
+      saveLocal(state);
+      paint();
+      toast(state.bayOn[i] ? 'BAY ONLINE' : 'BAY OFFLINE');
+    };
+    row.appendChild(btn);
+    root.appendChild(row);
+  });
+}
+
+function paint() {
+  state = accrue(seed, state, Date.now());
+  $('pending').innerHTML = `${fmt(state.pending)} <small>CR</small>`;
+  $('wallet').innerHTML = `${fmt(state.wallet)} <small>CR</small>`;
+  $('level').textContent = String(state.level);
+  $('rate').innerHTML = `${fmt(ratePerMin(seed, state))} <small>/MIN</small>`;
+  $('cap').textContent = String(capCrates(seed, state));
+  $('offline').textContent = offlineGapMs > 1000 ? fmtDur(offlineGapMs) : 'live';
+  $('hqLine').textContent = `HQ ${seed.hq.addr} · pack ${seed.source.pack_title} · save ${SAVE_KEY}`;
+  $('upgradeBtn').disabled = state.level >= (seed.economy.max_level || 5);
+  drawMap();
+}
+
+$('claimBtn').onclick = () => {
+  const r = claim(seed, state, Date.now());
+  state = r.state;
+  saveLocal(state);
+  paint();
+  toast(r.claimed > 0 ? `CLAIMED ${fmt(r.claimed)} CR` : 'NOTHING TO CLAIM');
+};
+$('upgradeBtn').onclick = () => {
+  const r = upgrade(seed, state, Date.now());
+  state = r.state;
+  saveLocal(state);
+  paint();
+  toast(r.ok ? `DEPOT → L${state.level}` : (r.reason === 'need_crates' ? `NEED ${seed.economy.upgrade_cost_crates} CR` : 'MAX LEVEL'));
+};
+$('simulateBtn').onclick = () => {
+  // Dev helper: rewind lastMs 5 minutes without touching network — proves offline accrual UI
+  state = { ...state, lastMs: Date.now() - 5 * 60_000 };
+  state = accrue(seed, state, Date.now());
+  saveLocal(state);
+  paint();
+  toast('+5 MIN ACCRUED');
+};
+
+renderBays();
+paint();
+setInterval(() => { paint(); saveLocal(state); }, 1000);
+console.info('[depot-idle]', seed.seal, 'v0', { hq: seed.hq.addr, save: SAVE_KEY });
+</script>
+</body>
+</html>

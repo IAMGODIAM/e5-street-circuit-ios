@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "E5 Street Circuit — the sovereign Upland racing game, packaged for iOS.",
+  "description": "E5 Street Circuit \u2014 the sovereign Upland racing game, packaged for iOS.",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -14,9 +14,10 @@
     "verify:native": "VERIFY_NATIVE_BUNDLE=1 node scripts/verify_release.mjs",
     "test:sim": "node tests/sim_determinism.mjs",
     "test:seatlog": "node tests/seatlog_roundtrip.mjs",
-    "check": "npm run verify:release && npm run test:sim && npm run test:seatlog",
+    "check": "npm run verify:release && npm run test:sim && npm run test:seatlog && npm run test:depot",
     "ios:sync": "bash scripts/sync_ios.sh",
-    "patch:ios": "bash scripts/patch_ios.sh"
+    "patch:ios": "bash scripts/patch_ios.sh",
+    "test:depot": "node tests/depot_idle_accrual.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",

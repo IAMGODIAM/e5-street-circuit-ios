@@ -30,3 +30,16 @@ npm run verify:native
 - `codemagic.yaml` provides equivalent Ad Hoc and TestFlight workflows using E5's existing credential groups.
 
 See `RELEASE_CHECKLIST.md` for App Store Connect declarations and reviewer notes.
+
+## Olive Depot Idle (SEAL A thin-rail)
+
+Offline logistics idle prototype on Olive Drive assets. **IAMGODIAM C-Corp game IP** (repo name does not make this an E5 charity product).
+
+```sh
+# after any static server pointing at www/, open depot-idle.html
+npx --yes serve www -p 4173
+# → http://127.0.0.1:4173/depot-idle.html
+npm run test:depot
+```
+
+Constraints: offline only · no Upland write · no Maps bill · no parcel buy · $0. Seed: `www/depot/olive_depot_seed.json` (from `olive_drive` pack + `6704 IRON OAK DR`). Kill rule and stubs: `docs/olive-depot-idle/`.

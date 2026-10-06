@@ -2,8 +2,8 @@
   "schema": 1,
   "appId": "com.e5enclave.streetcircuit",
   "source": "version-controlled www bundle; refreshes are explicit and reviewed",
-  "releaseId": "bdb85a4139c2187effd07a29e59c051218a2e939e27761a5588b043bf640970d",
-  "totalBytes": 32258359,
+  "releaseId": "1c486ab6af50bdf0c277ce05aa6f35310dff8b2102dc60dab81f7b95be6e7be4",
+  "totalBytes": 32276996,
   "files": [
     {
       "path": "canonical_record.json",
@@ -191,9 +191,24 @@
       "sha256": "0f2d7191effcc5ee7c63cc78dad8f657205713c23a9a7ddcca3c56b56f115470"
     },
     {
+      "path": "depot/olive_depot_seed.json",
+      "bytes": 1680,
+      "sha256": "5e780714368ec0d8e747dc17e90c7dbcf6b97e107d7b3cc6f6eddf61729279a2"
+    },
+    {
+      "path": "depot-idle-core.js",
+      "bytes": 4420,
+      "sha256": "d9be0c8e7a4748d86f305195ab43b5d04ee1becaeab9eda34a6446fb157fa2bf"
+    },
+    {
+      "path": "depot-idle.html",
+      "bytes": 12495,
+      "sha256": "d715aed2011695ed64bab7d81ba8483aa473d959cab8700e492ee72114684e2c"
+    },
+    {
       "path": "index.html",
-      "bytes": 183188,
-      "sha256": "fd74f1c469b132a5e9007245185c63f49f922806c06a8835d851ac760c418661"
+      "bytes": 183230,
+      "sha256": "447cb0559af177d4349f25a36ce0733de1ed5959081b9c00c3cf3a6231f1fb6e"
     },
     {
       "path": "packs/olive_drive.json",

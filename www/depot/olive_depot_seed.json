@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "entity": "IAMGODIAM C-Corp game IP (not E5 charity)",
+  "seal": "SEAL A Warroom 2026-10-06 \u2014 Circuit\u2192Olive depot idle v0",
+  "constraints": {
+    "offline_only": true,
+    "no_upland_write": true,
+    "no_maps_bill": true,
+    "no_parcel_buy": true,
+    "spend_usd": 0
+  },
+  "source": {
+    "pack": "www/packs/olive_drive.json",
+    "pack_meta_name": "olive_drive",
+    "pack_title": "OLIVE DRIVE",
+    "courses_home": "www/courses.json#home",
+    "extracted": "2026-10-06T06:53:00Z"
+  },
+  "hq": {
+    "addr": "6704 IRON OAK DR",
+    "x": 181.3,
+    "z": -729.6,
+    "role": "depot_hq",
+    "rate_crates_per_min": 2.0,
+    "cap_crates": 120
+  },
+  "bays": [
+    {
+      "id": "78080275913924",
+      "addr": "8312 EXODUS LN",
+      "x": 299.8,
+      "z": -488.0,
+      "dist_m": 269.1,
+      "rate_crates_per_min": 0.5
+    },
+    {
+      "id": "78080275913926",
+      "addr": "8308 EXODUS LN",
+      "x": 318.2,
+      "z": -483.3,
+      "dist_m": 281.8,
+      "rate_crates_per_min": 0.5
+    },
+    {
+      "id": "78079973923993",
+      "addr": "8415 EXODUS LN",
+      "x": 188.5,
+      "z": -426.2,
+      "dist_m": 303.5,
+      "rate_crates_per_min": 0.5
+    },
+    {
+      "id": "78079973923985",
+      "addr": "8419 EXODUS LN",
+      "x": 161.9,
+      "z": -426.5,
+      "dist_m": 303.8,
+      "rate_crates_per_min": 0.5
+    }
+  ],
+  "economy": {
+    "resource": "crates",
+    "tick_ms": 1000,
+    "upgrade_cost_crates": 40,
+    "upgrade_rate_bonus_per_min": 1.0,
+    "upgrade_cap_bonus": 60,
+    "max_level": 5
+  },
+  "notes": "Slim seed for offline idle. Full geometry stays in olive_drive.json; this file is the only I/O the v0 loop needs."
+}
